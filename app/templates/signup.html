@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up – INSAT XAI RainCast</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+
+<body class="auth-body">
+    <div class="auth-wrapper">
+        <!-- Animated background blobs -->
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+
+        <div class="auth-card">
+            <div class="auth-logo">
+                <span class="logo-icon">🌩️</span>
+                <h1>INSAT-3DR <span>XAI RainCast</span></h1>
+            </div>
+
+            <h2 class="auth-title">Create Account</h2>
+            <p class="auth-subtitle">Join the platform to access satellite rainfall predictions.</p>
+
+            <div id="signup-error" class="auth-alert auth-alert-error" style="display:none;"></div>
+            <div id="signup-success" class="auth-alert auth-alert-success" style="display:none;"></div>
+
+            <form id="signup-form" class="auth-form" autocomplete="off">
+                <div class="form-group">
+                    <label for="signup-name">Full Name</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">👤</span>
+                        <input type="text" id="signup-name" placeholder="Your full name" required autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="signup-email">Email Address</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">✉️</span>
+                        <input type="email" id="signup-email" placeholder="you@example.com" required autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="signup-password">Create Password</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input type="password" id="signup-password" placeholder="Minimum 6 characters" required minlength="6">
+                        <button type="button" class="toggle-pw" onclick="togglePw('signup-password', this)">👁</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="signup-confirm">Confirm Password</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input type="password" id="signup-confirm" placeholder="Re-enter your password" required>
+                        <button type="button" class="toggle-pw" onclick="togglePw('signup-confirm', this)">👁</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="auth-btn" id="signup-btn">
+                    <span class="btn-text">Create Account</span>
+                    <span class="btn-loader" style="display:none;">⏳</span>
+                </button>
+            </form>
+
+            <p class="auth-footer-link">
+                Already a user? <a href="/signin">Sign In</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script>
+        document.getElementById('signup-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const name     = document.getElementById('signup-name').value.trim();
+            const email    = document.getElementById('signup-email').value.trim().toLowerCase();
+            const password = document.getElementById('signup-password').value;
+            const confirm  = document.getElementById('signup-confirm').value;
+            const errorEl   = document.getElementById('signup-error');
+            const successEl = document.getElementById('signup-success');
+            const btn       = document.getElementById('signup-btn');
+
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+
+            // Client-side validation
+            if (!name)                   { showError(errorEl, 'Please enter your full name.'); return; }
+            if (password !== confirm)    { showError(errorEl, 'Passwords do not match.'); return; }
+            if (password.length < 6)     { showError(errorEl, 'Password must be at least 6 characters.'); return; }
+
+            btn.disabled = true;
+            btn.querySelector('.btn-text').textContent = 'Creating…';
+
+            try {
+                const res  = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    successEl.textContent = '✅ Account created! Redirecting to sign in…';
+                    successEl.style.display = 'block';
+                    setTimeout(() => { window.location.href = '/signin'; }, 1500);
+                } else {
+                    showError(errorEl, data.error || 'Sign up failed. Please try again.');
+                    btn.disabled = false;
+                    btn.querySelector('.btn-text').textContent = 'Create Account';
+                }
+            } catch (err) {
+                showError(errorEl, 'Network error. Please check your connection.');
+                btn.disabled = false;
+                btn.querySelector('.btn-text').textContent = 'Create Account';
+            }
+        });
+    </script>
+</body>
+
+</html>

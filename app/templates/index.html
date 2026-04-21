@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INSAT XAI Rainfall Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+
+<body>
+
+    <!-- Auth Guard: redirect to /signin if not logged in -->
+    <script>
+        (function () {
+            const user = sessionStorage.getItem('xai_user');
+            if (!user) { window.location.replace('/signin'); }
+        })();
+    </script>
+
+    <header>
+        <!-- Left spacer keeps title centred -->
+        <div class="user-info-bar" style="visibility:hidden; min-width:180px;" aria-hidden="true"></div>
+        <div class="header-title">
+            <h1>INSAT-3DR <span>XAI RainCast</span></h1>
+        </div>
+        <div class="user-info-bar" id="user-info-bar">
+            <div class="user-avatar" id="user-avatar">?</div>
+            <span class="user-name-label" id="user-name-label">Loading…</span>
+            <button id="logout-btn" onclick="handleLogout()">🚪 Logout</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Sidebar: Controls -->
+        <div class="sidebar">
+            <div class="card">
+                <h2>Control Panel</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem; margin-top:0;">Select region & data source.</p>
+
+                <form id="analyze-form">
+                    <label for="filename">Available Datasets</label>
+                    <select name="filename" id="filename">
+                        {% for file in h5_files %}
+                        <option value="{{ file }}">{{ file }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label for="state" style="margin-top:16px; display:block;">Select Region</label>
+                    <select name="state" id="state">
+                        {% for state in states %}
+                        <option value="{{ state }}">{{ state }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <button type="submit">Run Analysis</button>
+                </form>
+
+                <hr>
+                <button id="live-btn">🔴 Start Live Monitor</button>
+                <div id="live-status"
+                    style="display:none; color:var(--danger); font-size:0.85rem; margin-top:8px; text-align:center; font-weight:500;">
+                    Auto-scanning for new files...
+                </div>
+
+                <div id="loading">Processing Satellite Data... <br><small
+                        style="font-size:0.8rem; font-weight:normal;">Generating Physical Heatmap</small></div>
+            </div>
+
+            <div class="card" style="margin-top: 24px;">
+                <h2>External Forecast Context</h2>
+                <div id="weather-widget">
+                    <p id="weather-subtitle" style="color:var(--text-muted); font-size:0.9rem; margin-top:0;">Live
+                        weather data</p>
+                    <div id="live-weather-content">
+                        Loading...
+                    </div>
+                    <div id="forecast-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content: Satellite View & Results -->
+        <div class="main-content">
+            <div id="welcome-message" class="card" style="text-align: center; padding: 60px 20px;">
+                <h3 style="color:var(--accent); font-size:1.5rem; font-weight:400; margin-bottom:10px;">Awaiting
+                    Satellite Data</h3>
+                <p style="color:var(--text-muted); font-size:1.1rem; max-width:500px; margin:0 auto;">
+                    Select an internal dataset on the left or start the Live Monitor to analyze the latest INSAT-3DR
+                    infrared imagery.
+                </p>
+            </div>
+
+            <div id="result-area">
+                <div class="card" style="padding: 0; overflow: hidden; border:1px solid var(--border);">
+                    <div
+                        style="padding: 20px 24px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border);">
+                        <h2 style="margin:0; border:none; padding:0;">Diagnostic Heatmap</h2>
+                        <p style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-muted);">
+                            <span
+                                style="display:inline-block; width:12px; height:12px; background:red; border-radius:50%; margin-right:4px;"></span>
+                            Red highlighted areas represent intense convective storm cells powering the AI prediction.
+                        </p>
+                    </div>
+                    <div class="visualization-box">
+                        <img id="xai-image" src="" alt="XAI Heatmap">
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 24px;">
+                    <h2>Satellite-Driven Nowcast (AI)</h2>
+                    <p id="pred-message" style="color:var(--text-muted); font-size:1.05rem; margin-top:6px;"></p>
+
+                    <div class="metrics-grid">
+                        <div class="metric-box">
+                            <span id="pred-status" class="metric-value">--</span>
+                            <span
+                                style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Classification</span>
+                        </div>
+                        <div class="metric-box">
+                            <span id="pred-confidence" class="metric-value">0%</span>
+                            <span
+                                style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Model
+                                Confidence</span>
+                        </div>
+                        <div class="metric-box">
+                            <span id="pred-storm-ratio" class="metric-value">0%</span>
+                            <span
+                                style="font-size:0.85rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; letter-spacing:0.5px;">Cloud-Top
+                                Intensity</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script>
+        // Populate user info in header
+        (function () {
+            const raw = sessionStorage.getItem('xai_user');
+            if (!raw) return;
+            const user = JSON.parse(raw);
+            const nameEl = document.getElementById('user-name-label');
+            const avatarEl = document.getElementById('user-avatar');
+            if (nameEl) nameEl.textContent = user.name || user.email;
+            if (avatarEl) avatarEl.textContent = (user.name || user.email).charAt(0).toUpperCase();
+        })();
+
+        function handleLogout() {
+            sessionStorage.removeItem('xai_user');
+            window.location.href = '/signin';
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

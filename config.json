@@ -1,0 +1,20 @@
+{
+    "user_credentials": {
+        "username/email": "dhruvagarwal",
+        "password": "22oct2003@D"
+    },
+    "search_parameters": {
+        "datasetId": "3RIMG_L2B_IMC",
+        "startTime": "2026-04-20",
+        "endTime": "2026-04-21",
+        "boundingBox": "",
+        "count": 5
+    },
+    "download_settings": {
+        "download_path": "data/mosdac",
+        "organize_by_date": false,
+        "conflict_measure": "overwrite",
+        "skip_user_input": true,
+        "error_log_path": "error.log"
+    }
+}

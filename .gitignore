@@ -1,0 +1,29 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment Variables (Sensitive)
+.env
+
+# Large Data & Datasets
+data/
+datasets/
+d:/
+*.h5
+*.csv
+*.xlsx
+*.ipynb_checkpoints/
+
+# Flask/App Specific
+app/uploads/
+app/users.db
+
+# OS Files
+.DS_Store
+Thumbs.db
